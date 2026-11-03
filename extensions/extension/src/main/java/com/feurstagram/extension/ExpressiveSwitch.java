@@ -82,30 +82,32 @@ final class ExpressiveSwitch extends CompoundButton {
         float centerY = getHeight() / 2f;
         track.set(left, centerY - 16f * scale, left + 52f * scale, centerY + 16f * scale);
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(blend(Settings.SURFACE_CONTAINER_HIGH, Settings.PRIMARY, position));
-        canvas.drawRoundRect(track, 16f * scale, 16f * scale, paint);
+        paint.setColor(blend(Settings.SURFACE_CONTAINER_HIGH, Settings.ACCENT, position));
+        canvas.drawRect(track, paint);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(2f * scale);
-        paint.setColor(blend(Settings.OUTLINE, Settings.PRIMARY, position));
+        paint.setColor(blend(Settings.OUTLINE, Settings.ACCENT, position));
         track.inset(scale, scale);
-        canvas.drawRoundRect(track, 15f * scale, 15f * scale, paint);
+        canvas.drawRect(track, paint);
 
         float offset = getLayoutDirection() == LAYOUT_DIRECTION_RTL ? 1f - position : position;
         float centerX = left + (16f + 20f * offset) * scale;
         paint.setStyle(Paint.Style.FILL);
         if (press > 0f || isFocused()) {
             paint.setColor(Color.argb((int) (31f * Math.max(press, isFocused() ? 1f : 0f)), 255, 255, 255));
-            canvas.drawCircle(centerX, centerY, 20f * scale, paint);
+            canvas.drawRect(centerX - 20f * scale, centerY - 20f * scale,
+                    centerX + 20f * scale, centerY + 20f * scale, paint);
         }
         float diameter = 16f + 8f * position;
         diameter += (28f - diameter) * press;
         paint.setColor(blend(Settings.OUTLINE, Settings.ON_PRIMARY, position));
-        canvas.drawCircle(centerX, centerY, diameter * scale / 2f, paint);
+        float half = diameter * scale / 2f;
+        canvas.drawRect(centerX - half, centerY - half, centerX + half, centerY + half, paint);
 
         if (position > 0f) {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(2f * scale);
-            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setStrokeCap(Paint.Cap.BUTT);
             paint.setStrokeJoin(Paint.Join.ROUND);
             paint.setColor(Color.argb((int) (255f * position), 255, 255, 255));
             check.reset();

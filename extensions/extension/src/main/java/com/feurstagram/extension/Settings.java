@@ -15,6 +15,9 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -36,15 +39,16 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Feurstagram settings, shown as a full-screen page when the Home tab (or, with
  * Home hidden, the first tab on the bar) is long-pressed. Built entirely in code
  * (no bundled resources) and persisted through {@link Config}.
  *
- * <h3>The look: Material 3 Expressive, monochrome</h3>
- * White is the only accent — no hue anywhere, so the panel reads as part of a
- * dark OS rather than as a themed app. The Expressive part is in the shapes and
+ * <h3>The look: Bobstagram, midnight and amber</h3>
+ * A blue-black surface with amber as the single accent (toggles, primary buttons,
+ * section labels, half the wordmark). The Expressive part is in the shapes and
  * the type: large corner radii, options grouped into "connected" lists where the
  * group's outer corners are round and the joints between rows are nearly square,
  * pill-shaped buttons, sentence-case section labels, and a tight-tracked headline.
@@ -64,42 +68,41 @@ import java.util.List;
  */
 public final class Settings {
 
-    // --- Colour: a neutral dark scheme with white as the single accent --------
+    // --- Colour: midnight blue-black with amber as the single accent -----------
 
     /** Page background. */
-    public static final int SURFACE = 0xFF0E0E0E;
+    public static final int SURFACE = 0xFF0A0A0A;
     /** Cards, list rows. */
-    public static final int SURFACE_CONTAINER = 0xFF1B1B1B;
+    public static final int SURFACE_CONTAINER = 0xFF121212;
     /** One step up: tonal buttons, the raised confirm card. */
-    public static final int SURFACE_CONTAINER_HIGH = 0xFF262626;
-    public static final int ON_SURFACE = 0xFFF4F4F4;
-    public static final int ON_SURFACE_VARIANT = 0xFFABABAB;
-    public static final int OUTLINE = 0xFF757575;
+    public static final int SURFACE_CONTAINER_HIGH = 0xFF1C1C1C;
+    public static final int ON_SURFACE = 0xFFEAEAEA;
+    public static final int ON_SURFACE_VARIANT = 0xFF8C8C8C;
+    public static final int OUTLINE = 0xFF6B6B6B;
     public static final int OUTLINE_VARIANT = 0xFF3A3A3A;
-    /** The accent. Monochrome by design: white. */
-    public static final int PRIMARY = 0xFFFFFFFF;
-    public static final int ON_PRIMARY = 0xFF101010;
-    /**
-     * Destructive actions. A monochrome scheme has no red to lean on, so they
-     * carry the same accent and are distinguished by their wording instead.
-     */
-    public static final int ERROR = 0xFFFFFFFF;
-    public static final int ON_ERROR = 0xFF101010;
+    /** Primary buttons: white phosphor blocks with black text. */
+    public static final int PRIMARY = 0xFFEAEAEA;
+    public static final int ON_PRIMARY = 0xFF0A0A0A;
+    /** The one accent: hazard red. Only for ON state, section labels, the wordmark and the lock. */
+    public static final int ACCENT = 0xFFE61919;
+    /** Destructive actions (the permanent lock). */
+    public static final int ERROR = 0xFFE61919;
+    public static final int ON_ERROR = 0xFFFFFFFF;
     public static final int DIVIDER = 0xFF2A2A2A;
     public static final int RIPPLE = 0x26FFFFFF;
 
     // --- Shape: the M3 Expressive corner scale --------------------------------
 
     /** Dialog / card corners. */
-    private static final float CORNER_XL = 28f;
+    private static final float CORNER_XL = 0f;
     /** The outer corners of a connected list group. */
-    private static final float CORNER_L = 24f;
-    /** The joints inside a connected list group. */
-    private static final float CORNER_JOINT = 4f;
+    private static final float CORNER_L = 0f;
+    /** The joints inside a connected list group: soft, so rows read as tiles. */
+    private static final float CORNER_JOINT = 0f;
     /** Larger than half a view's height, so it renders as a pill. */
-    private static final float CORNER_FULL = 200f;
+    private static final float CORNER_FULL = 0f;
     /** Gap between the rows of a connected group. */
-    private static final int ROW_GAP_DP = 3;
+    private static final int ROW_GAP_DP = 1;
 
     private Settings() {}
 
@@ -113,11 +116,9 @@ public final class Settings {
         tabBar.getViewTreeObserver().addOnGlobalLayoutListener(new HomeTabWatcher(tabBar));
         Hiders.installAll(tabBar);
         Context activity = getActivityContext(tabBar);
-        // The follow card comes first after an install or update, then the card
-        // presenting Quoicouview mode; "What's new" waits until both are dismissed.
-        FollowPrompt.maybeShow(activity, () ->
-                QuoicouviewIntro.maybeShow(activity, () -> UpdateChecker.checkWhatsNew(activity)));
-        UpdateChecker.check(activity);
+        // No follow, "What's new" or update-available pop-ups. Updates are checked by
+        // hand from Settings > Updates; the Quoicouview intro is the only card left.
+        QuoicouviewIntro.maybeShow(activity, () -> { });
     }
 
     /** Unwrap a view's context down to the hosting Activity when possible. */
@@ -167,7 +168,7 @@ public final class Settings {
             styleWindow(dialog, Color.TRANSPARENT, 0f);
             dialog.show();
         } catch (Throwable t) {
-            Toast.makeText(context, "Feurstagram settings unavailable here", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "Bobstagram settings unavailable here", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -482,7 +483,11 @@ public final class Settings {
         void showOverview(boolean animate) {
             dialog.onBack = null;
             back.setVisibility(View.GONE);
-            title.setText("Feurstagram");
+            // Two-tone wordmark: "Bob" in text colour, "stagram" in the accent.
+            SpannableString wordmark = new SpannableString("BOBSTAGRAM");
+            wordmark.setSpan(new ForegroundColorSpan(ACCENT), 3, wordmark.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            title.setText(wordmark);
             subtitle.setText(hardcore
                     ? "Permanent lock is on. You can tighten blocks but not loosen them. "
                             + "Reinstall to fully unlock."
@@ -637,10 +642,8 @@ public final class Settings {
                 () -> pages.open("Display and popups", "How Instagram looks and talks to you.",
                         Settings::buildDisplay));
         addSectionRow(context, app, "download", "Updates",
-                Config.isAutoUpdateEnabled() ? "Automatic check on" : "Automatic check off",
-                () -> pages.open("Updates", "Keep Feurstagram current.", Settings::buildUpdates));
-        addSectionRow(context, app, "heart", "Support", "Help keep the project going",
-                () -> pages.open("Support", "Feurstagram is free and open source.", Settings::buildSupport));
+                "Check by hand",
+                () -> pages.open("Updates", "Keep Bobstagram current.", Settings::buildUpdates));
         sealGroup(context, app);
     }
 
@@ -749,24 +752,9 @@ public final class Settings {
     }
 
     private static void buildUpdates(Context context, LinearLayout column) {
-        LinearLayout updates = addGroup(context, column);
-        addRow(context, updates, "Automatic update check", "auto_update", Config.isAutoUpdateEnabled());
-        sealGroup(context, updates);
-
         Button checkUpdate = makeButton(context, "Check for updates", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
         checkUpdate.setOnClickListener(v -> UpdateChecker.checkNow(context));
         column.addView(checkUpdate, stackedButtonParams(context, 12));
-    }
-
-    private static void buildSupport(Context context, LinearLayout column) {
-        Button sponsors = makeButton(context, "Donate on GitHub Sponsors", 0, ON_SURFACE, false);
-        sponsors.setBackground(outlined(context, OUTLINE_VARIANT));
-        sponsors.setOnClickListener(v -> openUrl(context, "https://github.com/sponsors/jean-voila"));
-        column.addView(sponsors, stackedButtonParams(context, 16));
-
-        Button coffee = makeButton(context, "☕  Buy me a coffee", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        coffee.setOnClickListener(v -> openUrl(context, "https://buymeacoffee.com/jean_voila"));
-        column.addView(coffee, stackedButtonParams(context, 10));
     }
 
     private static String displaySummary() {
@@ -954,7 +942,7 @@ public final class Settings {
 
     private static GradientDrawable oval(int color) {
         GradientDrawable drawable = new GradientDrawable();
-        drawable.setShape(GradientDrawable.OVAL);
+        drawable.setShape(GradientDrawable.RECTANGLE);
         drawable.setColor(color);
         return drawable;
     }
@@ -985,7 +973,7 @@ public final class Settings {
             return;
         }
         showConfirm(context, "Restart Instagram?",
-                "Feurstagram will clear the cache and restart the app to apply your changes.",
+                "Bobstagram will clear the cache and restart the app to apply your changes.",
                 "Restart", PRIMARY, ON_PRIMARY,
                 () -> CacheCleaner.clearAndRestart(context));
     }
@@ -1137,27 +1125,16 @@ public final class Settings {
         });
     }
 
-    private static void openUrl(Context context, String url) {
-        if (context == null) return;
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
-        } catch (Throwable t) {
-            Toast.makeText(context, "No browser available", Toast.LENGTH_LONG).show();
-        }
-    }
-
     // --- Grouped lists --------------------------------------------------------
 
     /** A sentence-case section label, M3 Expressive style (not all-caps). */
     private static void addSectionLabel(Context context, LinearLayout parent, String text) {
         TextView label = new TextView(context);
-        label.setText(text);
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
-        label.setTextColor(ON_SURFACE_VARIANT);
-        label.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        label.setLetterSpacing(0.01f);
+        label.setText("[ " + text.toUpperCase(Locale.ROOT) + " ]");
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
+        label.setTextColor(ACCENT);
+        label.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+        label.setLetterSpacing(0.08f);
         label.setPadding(dp(context, 16), dp(context, 24), dp(context, 16), dp(context, 8));
         parent.addView(label);
     }
@@ -1339,10 +1316,11 @@ public final class Settings {
 
     /** The page headline: large, tight-tracked, medium weight. */
     public static void headline(TextView view) {
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30f);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f);
         view.setTextColor(ON_SURFACE);
-        view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        view.setLetterSpacing(-0.02f);
+        view.setAllCaps(true);
+        view.setTypeface(Typeface.create("sans-serif-black", Typeface.NORMAL));
+        view.setLetterSpacing(-0.04f);
     }
 
     /** A card or dialog title. */
@@ -1387,6 +1365,7 @@ public final class Settings {
         float br = dp(context, bottomRightDp);
         float bl = dp(context, bottomLeftDp);
         drawable.setCornerRadii(new float[]{tl, tl, tr, tr, br, br, bl, bl});
+        drawable.setStroke(dp(context, 1), OUTLINE_VARIANT); // hairline rule around each row
         return drawable;
     }
 
@@ -1414,11 +1393,11 @@ public final class Settings {
     public static Button makeButton(Context context, String text, int bgColor, int textColor, boolean filled) {
         Button button = new Button(context);
         button.setText(text);
-        button.setAllCaps(false);
+        button.setAllCaps(true);
         button.setTextColor(textColor);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
-        button.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        button.setLetterSpacing(0f);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+        button.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+        button.setLetterSpacing(0.06f);
         button.setMinHeight(dp(context, 52));
         button.setMinimumHeight(dp(context, 52));
         button.setPadding(dp(context, 20), 0, dp(context, 20), 0);

@@ -52,12 +52,23 @@ public final class Hiders {
         Quoicouview.install(root);
     }
 
+    /**
+     * Resource ids never change while the process lives, and this runs several
+     * times on every layout pass of the window (scrolling included), where the
+     * string lookup in getIdentifier is the slow part. A miss (0) is cached too.
+     */
+    private static final java.util.concurrent.ConcurrentHashMap<String, Integer> ID_CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     static int resolveId(Context context, String name) {
+        Integer cached = ID_CACHE.get(name);
+        if (cached != null) return cached;
         Resources resources = context.getResources();
         int id = resources.getIdentifier(name, "id", context.getPackageName());
         if (id == 0) {
             id = resources.getIdentifier(name, "id", "com.instagram.android");
         }
+        ID_CACHE.put(name, id);
         return id;
     }
 

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.util.Log;
 import android.view.View;
@@ -109,6 +110,9 @@ public final class DebugBridge {
         if (sInstalled) return;
         Context context = Config.getAppContext();
         if (context == null) return;
+        // The receiver is exported and unauthenticated: never register it in a
+        // build that isn't debuggable (--debug sets the flag), whatever calls us.
+        if ((context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) == 0) return;
         try {
             IntentFilter filter = new IntentFilter();
             for (String action : ACTIONS) filter.addAction(PREFIX + action);

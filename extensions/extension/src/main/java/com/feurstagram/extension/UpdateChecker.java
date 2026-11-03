@@ -74,10 +74,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class UpdateChecker implements Runnable {
 
-    private static final String REPO = "jean-voila/Feurstagram";
+    private static final String REPO = "Bobike123/Bobstagram";
     private static final String LATEST_API = "https://api.github.com/repos/" + REPO + "/releases/latest";
     private static final String LATEST_PAGE = "https://github.com/" + REPO + "/releases/latest";
-    private static final String RELEASE_BY_TAG = "https://api.github.com/repos/" + REPO + "/releases/tags/";
+    private static final String RELEASE_DOWNLOAD_PREFIX = "https://github.com/" + REPO + "/releases/download/";
+    private static final String RELEASE_BY_TAG ="https://api.github.com/repos/" + REPO + "/releases/tags/";
     private static final String USER_AGENT = "Feurstagram-UpdateCheck";
 
     /** Action prefix for the per-session PackageInstaller status callback. */
@@ -202,7 +203,7 @@ public final class UpdateChecker implements Runnable {
                     }
                 });
             } else if (manual) {
-                ui.post(() -> toast("FeurStagram is up to date (" + installed + ")"));
+                ui.post(() -> toast("Bobstagram is up to date (" + installed + ")"));
             }
         } catch (Throwable t) {
             // Network/parse failures are non-fatal: silent for auto checks,
@@ -332,7 +333,8 @@ public final class UpdateChecker implements Runnable {
             idx = json.indexOf("\"browser_download_url\"", idx) + 1;
         }
         for (String url : urls) {
-            if (!url.endsWith(".apk")) continue;
+            // Only ever download from this project's own GitHub releases over TLS.
+            if (!url.startsWith(RELEASE_DOWNLOAD_PREFIX) || !url.endsWith(".apk")) continue;
             boolean cloneAsset = url.endsWith("-clone.apk");
             if (cloneAsset == clone) return url;
         }
@@ -504,7 +506,7 @@ public final class UpdateChecker implements Runnable {
             card.addView(title);
 
             TextView subtitle = new TextView(context);
-            subtitle.setText("FeurStagram " + version);
+            subtitle.setText("Bobstagram "+ version);
             Settings.body(subtitle);
             subtitle.setPadding(0, Settings.dp(context, 4), 0, 0);
             card.addView(subtitle);
@@ -542,7 +544,7 @@ public final class UpdateChecker implements Runnable {
             if (updateInFlight || (existing != null && existing.isShowing())) return;
             Settings.Page page = Settings.newPage(context);
             Settings.addPageTitle(page, "Update available",
-                    "FeurStagram " + release.tag + "  ·  you have " + installed);
+                    "Bobstagram "+ release.tag + "  ·  you have " + installed);
 
             final Dialog dialog = Settings.newPageDialog(context, page.root);
             dialog.setOnDismissListener(d -> {
@@ -752,8 +754,8 @@ public final class UpdateChecker implements Runnable {
         private void showProgressPage() {
             try {
                 Settings.Page page = Settings.newPage(context);
-                Settings.addPageTitle(page, "Updating FeurStagram",
-                        "FeurStagram " + release.tag);
+                Settings.addPageTitle(page, "Updating Bobstagram",
+                        "Bobstagram "+ release.tag);
 
                 LinearLayout block = new LinearLayout(context);
                 block.setOrientation(LinearLayout.VERTICAL);
@@ -861,14 +863,14 @@ public final class UpdateChecker implements Runnable {
                 if (manager == null) return;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                            "Feurstagram updates", NotificationManager.IMPORTANCE_LOW);
+                            "Bobstagram updates", NotificationManager.IMPORTANCE_LOW);
                     channel.setShowBadge(false);
                     manager.createNotificationChannel(channel);
                 }
                 Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                         ? new Notification.Builder(app, CHANNEL_ID)
                         : new Notification.Builder(app);
-                builder.setContentTitle("Updating FeurStagram")
+                builder.setContentTitle("Updating Bobstagram")
                         .setContentText(text)
                         .setSmallIcon(android.R.drawable.stat_sys_download)
                         .setOngoing(true)
@@ -1091,8 +1093,16 @@ public final class UpdateChecker implements Runnable {
                 if (statusCode == PackageInstaller.STATUS_PENDING_USER_ACTION) {
                     if (promptShown) return; // never raise a second confirmation
                     Intent confirm = intent.getParcelableExtra(Intent.EXTRA_INTENT);
-                    if (confirm == null) return;
-                    confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    // Before Android 13 this receiver is reachable by other apps, so
+                    // the extra is untrusted. The platform's own confirmation targets
+                    // the system installer; refuse anything aimed at this app (that
+                    // would be an intent redirect into its private activities) and
+                    // never pass URI grants along.
+                    if (confirm == null || confirm.getComponent() == null
+                            || c.getPackageName().equals(confirm.getComponent().getPackageName())) {
+                        return;
+                    }
+                    confirm.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     try {
                         c.startActivity(confirm);
                         promptShown = true;
