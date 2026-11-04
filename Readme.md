@@ -283,7 +283,38 @@ within the same session instead of forcing a reinstall.
    ```bash
    ./build.sh instagram.apk --clone --install
    ```
-   The signed result is written to `feurstagram.apk`.
+   The signed result is written to `bobstagram.apk`.
+
+### Quick recipe: build Bobstagram on a Linux laptop
+
+One-time setup (JDK 21, the Android SDK with `platforms;android-35` and
+`build-tools;35.0.0`, and the GitHub CLI logged in):
+
+```bash
+mkdir -p tools
+gh release download v1.20.0 -R MorpheApp/morphe-cli -p 'morphe-desktop-1.20.0-all.jar' -D tools/
+gh release download V1.4.9  -R REAndroid/APKEditor  -p 'APKEditor-1.4.9.jar'           -D tools/
+gh auth refresh -h github.com -s read:packages   # token for the patcher dependency
+```
+
+Every build (put your Instagram `.apkm`/`.apk` next to `build.sh`):
+
+```bash
+export JAVA_HOME=/path/to/jdk-21 ANDROID_HOME="$HOME/Android/Sdk"
+./build.sh com.instagram.android_453.0.0.57.79_apkmirror.com.apkm --clone --no-quoicouview
+```
+
+The result is `./bobstagram.apk`; copy it to your phone and install it. It
+appears as **Bobstagram** next to your normal Instagram.
+
+- `--no-quoicouview` is only needed when your Instagram bundle is older than the
+  version the patches were last tuned for (that one patch fails on older builds;
+  everything else still applies). Drop the flag on the current Instagram version.
+- **Signing key:** without `FEURSTAGRAM_KEYSTORE_PASS` the Morphe CLI signs with its
+  own key, kept in `tools/morphe-data`. Back that folder up: a new key means
+  Android refuses to update an installed build in place.
+- The settings screens read Instagram's own fonts and icons at run time, so the
+  look needs no extra files.
 
 ## Project structure
 

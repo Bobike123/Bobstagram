@@ -71,36 +71,36 @@ public final class Settings {
     // --- Colour: midnight blue-black with amber as the single accent -----------
 
     /** Page background. */
-    public static final int SURFACE = 0xFF0A0A0A;
-    /** Cards, list rows. */
+    public static final int SURFACE = 0xFF000000;
+    /** Dialog and preview cards (list rows are flat on SURFACE). */
     public static final int SURFACE_CONTAINER = 0xFF121212;
-    /** One step up: tonal buttons, the raised confirm card. */
-    public static final int SURFACE_CONTAINER_HIGH = 0xFF1C1C1C;
-    public static final int ON_SURFACE = 0xFFEAEAEA;
-    public static final int ON_SURFACE_VARIANT = 0xFF8C8C8C;
-    public static final int OUTLINE = 0xFF6B6B6B;
-    public static final int OUTLINE_VARIANT = 0xFF3A3A3A;
-    /** Primary buttons: white phosphor blocks with black text. */
-    public static final int PRIMARY = 0xFFEAEAEA;
-    public static final int ON_PRIMARY = 0xFF0A0A0A;
-    /** The one accent: hazard red. Only for ON state, section labels, the wordmark and the lock. */
-    public static final int ACCENT = 0xFFE61919;
-    /** Destructive actions (the permanent lock). */
-    public static final int ERROR = 0xFFE61919;
+    /** One step up: secondary buttons. */
+    public static final int SURFACE_CONTAINER_HIGH = 0xFF262626;
+    public static final int ON_SURFACE = 0xFFF5F5F5;
+    public static final int ON_SURFACE_VARIANT = 0xFFA8A8A8;
+    public static final int OUTLINE = 0xFF737373;
+    public static final int OUTLINE_VARIANT = 0xFF363636;
+    /** Primary buttons: Instagram blue with white text. */
+    public static final int PRIMARY = 0xFF0095F6;
+    public static final int ON_PRIMARY = 0xFFFFFFFF;
+    /** Switch ON track. */
+    public static final int ACCENT = 0xFF0095F6;
+    /** Destructive actions (the permanent lock): Instagram's red. */
+    public static final int ERROR = 0xFFFF3040;
     public static final int ON_ERROR = 0xFFFFFFFF;
-    public static final int DIVIDER = 0xFF2A2A2A;
+    public static final int DIVIDER = 0xFF262626;
     public static final int RIPPLE = 0x26FFFFFF;
 
     // --- Shape: the M3 Expressive corner scale --------------------------------
 
     /** Dialog / card corners. */
-    private static final float CORNER_XL = 0f;
+    private static final float CORNER_XL = 16f;
     /** The outer corners of a connected list group. */
-    private static final float CORNER_L = 0f;
+    private static final float CORNER_L = 12f;
     /** The joints inside a connected list group: soft, so rows read as tiles. */
     private static final float CORNER_JOINT = 0f;
     /** Larger than half a view's height, so it renders as a pill. */
-    private static final float CORNER_FULL = 0f;
+    private static final float CORNER_FULL = 8f;
     /** Gap between the rows of a connected group. */
     private static final int ROW_GAP_DP = 1;
 
@@ -483,11 +483,8 @@ public final class Settings {
         void showOverview(boolean animate) {
             dialog.onBack = null;
             back.setVisibility(View.GONE);
-            // Two-tone wordmark: "Bob" in text colour, "stagram" in the accent.
-            SpannableString wordmark = new SpannableString("BOBSTAGRAM");
-            wordmark.setSpan(new ForegroundColorSpan(ACCENT), 3, wordmark.length(),
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            title.setText(wordmark);
+            title.setText("Bobstagram");
+            wordmark(title);
             subtitle.setText(hardcore
                     ? "Permanent lock is on. You can tighten blocks but not loosen them. "
                             + "Reinstall to fully unlock."
@@ -499,6 +496,7 @@ public final class Settings {
             dialog.onBack = () -> showOverview(true);
             back.setVisibility(View.VISIBLE);
             title.setText(name);
+            headline(title);
             subtitle.setText(support);
             swap(true, 1, () -> builder.build(context, column));
         }
@@ -581,7 +579,7 @@ public final class Settings {
         actionsLp.setMargins(0, dp(context, 12), 0, 0);
         root.addView(actions, actionsLp);
 
-        Button lock = makeButton(context, "Permanent lock", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
+        Button lock = makeButton(context, "Permanent lock", SURFACE_CONTAINER_HIGH, ERROR, true);
         lock.setOnClickListener(v -> {
             dialog.dismiss();
             confirmHardcore(context);
@@ -1130,12 +1128,15 @@ public final class Settings {
     /** A sentence-case section label, M3 Expressive style (not all-caps). */
     private static void addSectionLabel(Context context, LinearLayout parent, String text) {
         TextView label = new TextView(context);
-        label.setText("[ " + text.toUpperCase(Locale.ROOT) + " ]");
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f);
-        label.setTextColor(ACCENT);
-        label.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
-        label.setLetterSpacing(0.08f);
+        label.setText(text);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
+        label.setTextColor(ON_SURFACE_VARIANT);
+        label.setTypeface(font(context, "IGUIBetav9_SemiBold",
+                Typeface.create("sans-serif-medium", Typeface.NORMAL)));
+        label.setLetterSpacing(0f);
         label.setPadding(dp(context, 16), dp(context, 24), dp(context, 16), dp(context, 8));
+        // A hairline between sections, as in Instagram's own settings.
+        if (parent.getChildCount() > 0) parent.addView(makeDivider(context, DIVIDER));
         parent.addView(label);
     }
 
@@ -1156,10 +1157,8 @@ public final class Settings {
         int count = group.getChildCount();
         for (int i = 0; i < count; i++) {
             View row = group.getChildAt(i);
-            float top = i == 0 ? CORNER_L : CORNER_JOINT;
-            float bottom = i == count - 1 ? CORNER_L : CORNER_JOINT;
-            row.setBackground(ripple(RIPPLE,
-                    roundedRect(SURFACE_CONTAINER, context, top, top, bottom, bottom)));
+            // Instagram's rows are flat on the page: only a press ripple, no fill.
+            row.setBackground(ripple(RIPPLE, roundedRect(Color.TRANSPARENT, 0f, context)));
             if (i < count - 1) {
                 ViewGroup.LayoutParams lp = row.getLayoutParams();
                 if (lp instanceof LinearLayout.LayoutParams) {
@@ -1185,13 +1184,15 @@ public final class Settings {
         labelView.setText(label);
         labelView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
         labelView.setTextColor(ON_SURFACE);
+        labelView.setTypeface(font(context, "IGUIBetav9_Regular", Typeface.DEFAULT));
         texts.addView(labelView);
 
         if (support != null) {
             TextView supportView = new TextView(context);
             supportView.setText(support);
-            supportView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
+            supportView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f);
             supportView.setTextColor(ON_SURFACE_VARIANT);
+            supportView.setTypeface(font(context, "IGUIBetav9_Regular", Typeface.DEFAULT));
             supportView.setLineSpacing(0f, 1.1f);
             supportView.setPadding(0, dp(context, 2), 0, 0);
             texts.addView(supportView);
@@ -1316,18 +1317,57 @@ public final class Settings {
 
     /** The page headline: large, tight-tracked, medium weight. */
     public static void headline(TextView view) {
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f);
         view.setTextColor(ON_SURFACE);
-        view.setAllCaps(true);
-        view.setTypeface(Typeface.create("sans-serif-black", Typeface.NORMAL));
-        view.setLetterSpacing(-0.04f);
+        view.setAllCaps(false);
+        view.setTypeface(font(view.getContext(), "IGUIBetav9_SemiBold",
+                Typeface.create("sans-serif-medium", Typeface.NORMAL)));
+        view.setLetterSpacing(0f);
+    }
+
+    private static final java.util.HashMap<String, Typeface> FONTS = new java.util.HashMap<>();
+
+    /**
+     * One of Instagram's own typefaces by resource name. They ship inside the app
+     * Bobstagram is patched into, so nothing is bundled here; if a build lacks the
+     * font, the fallback is used.
+     */
+    static Typeface font(Context context, String name, Typeface fallback) {
+        if (FONTS.containsKey(name)) {
+            Typeface cached = FONTS.get(name);
+            return cached != null ? cached : fallback;
+        }
+        Typeface found = null;
+        if (Build.VERSION.SDK_INT >= 26) {
+            try {
+                android.content.res.Resources res = context.getResources();
+                int id = res.getIdentifier(name, "font", context.getPackageName());
+                if (id == 0) id = res.getIdentifier(name, "font", "com.instagram.android");
+                if (id != 0) found = res.getFont(id);
+            } catch (Throwable ignored) {
+                // not loadable in this build: use the fallback
+            }
+        }
+        FONTS.put(name, found);
+        return found != null ? found : fallback;
+    }
+
+    /** The Bobstagram wordmark, set in Instagram's own logo typeface. */
+    static void wordmark(TextView view) {
+        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 40f);
+        view.setTextColor(ON_SURFACE);
+        view.setAllCaps(false);
+        view.setTypeface(font(view.getContext(), "ig_logo_font",
+                Typeface.create(Typeface.SERIF, Typeface.ITALIC)));
+        view.setLetterSpacing(0f);
     }
 
     /** A card or dialog title. */
     public static void titleLarge(TextView view) {
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f);
         view.setTextColor(ON_SURFACE);
-        view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        view.setTypeface(font(view.getContext(), "IGUIBetav9_SemiBold",
+                Typeface.create("sans-serif-medium", Typeface.NORMAL)));
         view.setLetterSpacing(-0.01f);
     }
 
@@ -1365,7 +1405,6 @@ public final class Settings {
         float br = dp(context, bottomRightDp);
         float bl = dp(context, bottomLeftDp);
         drawable.setCornerRadii(new float[]{tl, tl, tr, tr, br, br, bl, bl});
-        drawable.setStroke(dp(context, 1), OUTLINE_VARIANT); // hairline rule around each row
         return drawable;
     }
 
@@ -1393,13 +1432,14 @@ public final class Settings {
     public static Button makeButton(Context context, String text, int bgColor, int textColor, boolean filled) {
         Button button = new Button(context);
         button.setText(text);
-        button.setAllCaps(true);
+        button.setAllCaps(false);
         button.setTextColor(textColor);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f);
-        button.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
-        button.setLetterSpacing(0.06f);
-        button.setMinHeight(dp(context, 52));
-        button.setMinimumHeight(dp(context, 52));
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
+        button.setTypeface(font(context, "IGUIBetav9_SemiBold",
+                Typeface.create("sans-serif-medium", Typeface.NORMAL)));
+        button.setLetterSpacing(0f);
+        button.setMinHeight(dp(context, 44));
+        button.setMinimumHeight(dp(context, 44));
         button.setPadding(dp(context, 20), 0, dp(context, 20), 0);
         button.setStateListAnimator(null);
         button.setBackground(filled

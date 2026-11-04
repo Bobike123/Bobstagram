@@ -2,10 +2,13 @@
 #
 # Feurstagram build pipeline.
 #
-#   ./build.sh <instagram.apk|.apkm|.xapk|.apks> [--clone] [--install] [--debug]
+#   ./build.sh <instagram.apk|.apkm|.xapk|.apks> [--clone] [--install] [--debug] [--no-quoicouview]
 #
 # Builds the patch bundle (.mpp) from the Gradle project, then applies it to the
-# given Instagram APK with the local Morphe CLI, producing ./feurstagram.apk.
+# given Instagram APK with the local Morphe CLI, producing ./bobstagram.apk.
+#   --no-quoicouview  skip the "Quoicouview mode" patch. Use it when your Instagram
+#               bundle is older than the version the patches were last tuned for
+#               (that patch fingerprints very specific code and fails on older builds).
 #   --clone     install side-by-side as a separate package (com.instagram.android.feurstagram)
 #   --install   install the result on the connected ADB device
 #   --debug     enable the Debug bridge patch: the settings become drivable over
@@ -31,7 +34,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # The CLI jar was renamed morphe-cli-* -> morphe-desktop-* upstream at 1.11; accept both.
 CLI="$(ls -t "$DIR"/tools/morphe-cli-*.jar "$DIR"/tools/morphe-desktop-*.jar 2>/dev/null | head -1 || true)"
-OUT="$DIR/feurstagram.apk"
+OUT="$DIR/bobstagram.apk"
 
 # Morphe's Android Gradle plugin targets JDK 17-21; pin to 21 so the build does
 # not pick up a newer system JDK.
@@ -76,17 +79,19 @@ APK=""
 CLONE=0
 INSTALL=0
 DEBUG=0
+NO_QUOICOUVIEW=0
 for arg in "$@"; do
     case "$arg" in
         --clone) CLONE=1 ;;
         --install) INSTALL=1 ;;
         --debug) DEBUG=1 ;;
+        --no-quoicouview) NO_QUOICOUVIEW=1 ;;
         *) APK="$arg" ;;
     esac
 done
 
 if [ -z "$APK" ] || [ ! -f "$APK" ]; then
-    echo "usage: ./build.sh <instagram.apk|.apkm|.xapk|.apks> [--clone] [--install] [--debug]" >&2
+    echo "usage: ./build.sh <instagram.apk|.apkm|.xapk|.apks> [--clone] [--install] [--debug] [--no-quoicouview]" >&2
     exit 1
 fi
 if [ -z "$CLI" ]; then
@@ -141,6 +146,7 @@ mkdir -p "$DIR/build"
 ARGS=(-jar "$CLI" patch -p "$MPP" -f -r "$REPORT" -o "$OUT")
 [ "$CLONE" -eq 1 ] && ARGS+=(-e "Clone")
 [ "$DEBUG" -eq 1 ] && ARGS+=(-e "Debug bridge")
+[ "$NO_QUOICOUVIEW" -eq 1 ] && ARGS+=(-d "Quoicouview mode")
 
 # With a keystore password, defer signing to apksigner (the CLI can't read the
 # PKCS12 keystore); otherwise let the CLI sign with a throwaway key for testing.

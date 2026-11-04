@@ -34,7 +34,7 @@ you inspect the patches and avoid trusting a prebuilt APK.
 
 3. Install the signed result (if you did not pass `--install`).
    ```sh
-   adb install -r feurstagram.apk
+   adb install -r bobstagram.apk
    ```
 
 ## Signing

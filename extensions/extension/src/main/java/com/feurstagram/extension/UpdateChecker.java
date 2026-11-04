@@ -637,7 +637,8 @@ public final class UpdateChecker implements Runnable {
             view.setTextColor(heading ? Settings.ON_SURFACE : Settings.ON_SURFACE_VARIANT);
             view.setLineSpacing(0f, 1.15f);
             if (heading) {
-                view.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+                view.setTypeface(Settings.font(view.getContext(), "IGUIBetav9_SemiBold",
+                        Typeface.create("sans-serif-medium", Typeface.NORMAL)));
                 view.setLetterSpacing(-0.01f);
             }
             view.setPadding(0, Settings.dp(context, heading ? 16 : 6), 0, 0);

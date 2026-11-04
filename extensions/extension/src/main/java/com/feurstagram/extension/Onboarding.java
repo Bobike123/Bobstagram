@@ -419,7 +419,8 @@ public final class Onboarding {
             skip.setText("Skip");
             skip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f);
             skip.setTextColor(Settings.ON_SURFACE_VARIANT);
-            skip.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            skip.setTypeface(Settings.font(skip.getContext(), "IGUIBetav9_SemiBold",
+                    Typeface.create("sans-serif-medium", Typeface.NORMAL)));
             skip.setBackground(Settings.outlined(context, Settings.OUTLINE_VARIANT));
             int skipPadX = Settings.dp(context, 20);
             int skipPadY = Settings.dp(context, 12);
